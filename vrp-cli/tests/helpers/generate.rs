@@ -1,7 +1,7 @@
 use vrp_pragmatic::format::problem::*;
 use vrp_pragmatic::format::Location;
 
-fn create_empty_job() -> Job {
+pub fn create_empty_job() -> Job {
     Job {
         id: "".to_string(),
         pickups: None,
@@ -13,18 +13,18 @@ fn create_empty_job() -> Job {
     }
 }
 
-fn create_empty_job_task() -> JobTask {
+pub fn create_empty_job_task() -> JobTask {
     JobTask { places: vec![], demand: None, tag: None }
 }
 
-fn create_empty_job_place() -> JobPlace {
+pub fn create_empty_job_place() -> JobPlace {
     JobPlace { location: Location::Coordinate { lat: 0.0, lng: 0.0 }, duration: 0.0, times: None }
 }
 
 pub fn create_test_vehicle_type() -> VehicleType {
     VehicleType {
         type_id: "vehicle".to_string(),
-        vehicle_ids: vec![],
+        vehicle_ids: vec!["vehicle_1".to_string()],
         profile: "car".to_string(),
         costs: VehicleCosts { fixed: None, distance: 0.0, time: 0.0 },
         shifts: vec![VehicleShift {
@@ -60,6 +60,7 @@ pub fn create_test_job(lat: f64, lng: f64) -> Job {
                 times: Some(vec![create_test_time_window()]),
                 ..create_empty_job_place()
             }],
+            demand: Some(vec![1]),
             ..create_empty_job_task()
         }]),
         ..create_empty_job()

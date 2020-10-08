@@ -182,14 +182,27 @@
         ],
         "recreates": [
           {
-            "weight": 100,
-            "type": "regret",
+            "weight": 50,
+            "type": "skip-best",
             "start": 1,
             "end": 2
           },
           {
-            "weight": 5,
+            "weight": 20,
             "type": "regret",
+            "start": 2,
+            "end": 3
+          },
+          {
+            "weight": 10,
+            "type": "perturbation",
+            "probability": 0.33,
+            "min": 0.8,
+            "max": 1.2
+          },
+          {
+            "weight": 5,
+            "type": "skip-best",
             "start": 3,
             "end": 4
           },
@@ -204,7 +217,7 @@
           },
           {
             "weight": 2,
-            "type": "regret",
+            "type": "skip-best",
             "start": 4,
             "end": 8
           },
@@ -251,7 +264,7 @@
   },
   "telemetry": {
     "logging": {
-      "enabled": false,
+      "enabled": true,
       "logBest": 100,
       "logPopulation": 1000
     },

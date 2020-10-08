@@ -21,8 +21,13 @@ mod helpers;
 #[path = "../tests/features/mod.rs"]
 mod features;
 
+#[cfg(test)]
+#[path = "../tests/unit/lib_test.rs"]
+mod lib_test;
+
 pub use vrp_core as core;
 pub use vrp_pragmatic as pragmatic;
+#[cfg(feature = "scientific-format")]
 pub use vrp_scientific as scientific;
 
 pub mod extensions;

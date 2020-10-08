@@ -6,8 +6,7 @@ extern crate serde_json;
 
 use crate::format::{FormatError, Location};
 use serde::{Deserialize, Serialize};
-use serde_json::Error;
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Error, Read, Write};
 
 // region Plan
 
@@ -216,7 +215,18 @@ pub struct VehicleLimits {
     /// Specifies a list of areas where vehicle can serve jobs.
     /// No area restrictions when omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allowed_areas: Option<Vec<Vec<Location>>>,
+    pub allowed_areas: Option<Vec<AreaLimit>>,
+}
+
+/// Specifies area limit.
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaLimit {
+    /// An area priority, bigger value - less important.
+    /// Default is 1.
+    pub priority: Option<usize>,
+    /// An area outer shape.
+    pub outer_shape: Vec<Location>,
 }
 
 /// Vehicle break time variant.
@@ -462,7 +472,18 @@ pub fn deserialize_matrix<R: Read>(reader: BufReader<R>) -> Result<Matrix, Vec<F
     })
 }
 
+/// Deserializes json list of locations from `BufReader`.
+pub fn deserialize_locations<R: Read>(reader: BufReader<R>) -> Result<Vec<Location>, Vec<FormatError>> {
+    serde_json::from_reader(reader).map_err(|err| {
+        vec![FormatError::new(
+            "E0000".to_string(),
+            "cannot deserialize locations".to_string(),
+            format!("check input json: '{}'", err),
+        )]
+    })
+}
+
 /// Serializes `problem` in json from `writer`.
 pub fn serialize_problem<W: Write>(writer: BufWriter<W>, problem: &Problem) -> Result<(), Error> {
-    serde_json::to_writer_pretty(writer, problem)
+    serde_json::to_writer_pretty(writer, problem).map_err(Error::from)
 }

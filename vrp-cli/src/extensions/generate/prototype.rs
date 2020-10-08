@@ -4,20 +4,27 @@ mod prototype_test;
 
 use super::*;
 use vrp_pragmatic::format::problem::Problem;
+use vrp_pragmatic::format::Location;
 
 /// Generates meaningful problem from the prototype.
 /// There is another problem generation implementation in `vrp-pragmatic` crate, used by tests.
 /// Its main goal is to discover problem space by generating many, potentially unrealistic, problems
 /// using property based approach. This implementation, in contrast, focuses on generating realistic
 /// problems.
-pub fn generate_from_prototype(problem: &Problem, job_size: usize, area_size: Option<f64>) -> Result<Problem, String> {
+pub(crate) fn generate_from_prototype(
+    problem: &Problem,
+    locations: Option<Vec<Location>>,
+    jobs_size: usize,
+    vehicle_types_size: usize,
+    area_size: Option<f64>,
+) -> Result<Problem, String> {
     if problem.plan.jobs.len() < 3 {
         return Err("at least three jobs should be defined".to_string());
     }
 
     Ok(Problem {
-        plan: generate_plan(&problem, job_size, area_size)?,
-        fleet: problem.fleet.clone(),
+        plan: generate_plan(&problem, locations, jobs_size, area_size)?,
+        fleet: generate_fleet(&problem, vehicle_types_size)?,
         objectives: problem.objectives.clone(),
         config: problem.config.clone(),
     })

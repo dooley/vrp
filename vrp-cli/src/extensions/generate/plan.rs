@@ -2,6 +2,7 @@
 #[path = "../../../tests/unit/extensions/generate/plan_test.rs"]
 mod plan_test;
 
+use super::get_random_item;
 use vrp_core::utils::{DefaultRandom, Random};
 use vrp_pragmatic::format::problem::{Job, JobPlace, JobTask, Plan, Problem};
 use vrp_pragmatic::format::Location;
@@ -9,18 +10,15 @@ use vrp_pragmatic::format::Location;
 /// Generates a new plan for given problem with amount of jobs specified by`jobs_size` and
 /// bounding box of size `area_size` (half size in meters). When not specified, jobs bounding
 /// box is used.
-pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option<f64>) -> Result<Plan, String> {
+pub(crate) fn generate_plan(
+    problem_proto: &Problem,
+    locations: Option<Vec<Location>>,
+    jobs_size: usize,
+    area_size: Option<f64>,
+) -> Result<Plan, String> {
     let rnd = DefaultRandom::default();
 
-    let bounding_box = if let Some(area_size) = area_size {
-        if area_size > 0. {
-            get_bounding_box_from_size(&problem_proto.plan, area_size)
-        } else {
-            return Err("area size must be positive".to_string());
-        }
-    } else {
-        get_bounding_box_from_plan(&problem_proto.plan)
-    };
+    let get_location_fn = get_location_fn(problem_proto, locations, area_size)?;
 
     let time_windows = get_plan_time_windows(&problem_proto.plan);
     let demands = get_plan_demands(&problem_proto.plan);
@@ -35,7 +33,7 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
                         .places
                         .iter()
                         .map(|_| JobPlace {
-                            location: get_random_location(&bounding_box, &rnd),
+                            location: get_location_fn(&rnd),
                             duration: get_random_item(durations.as_slice(), &rnd).cloned().unwrap(),
                             times: get_random_item(time_windows.as_slice(), &rnd).cloned(),
                         })
@@ -52,7 +50,7 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
         })
     };
 
-    let jobs = (1..=job_size)
+    let jobs = (1..=jobs_size)
         .map(|job_idx| {
             let job_proto = get_random_item(problem_proto.plan.jobs.as_slice(), &rnd).unwrap();
 
@@ -73,6 +71,33 @@ pub fn generate_plan(problem_proto: &Problem, job_size: usize, area_size: Option
         .collect();
 
     Ok(Plan { jobs, relations: None })
+}
+
+fn get_location_fn(
+    problem_proto: &Problem,
+    locations: Option<Vec<Location>>,
+    area_size: Option<f64>,
+) -> Result<Box<dyn Fn(&DefaultRandom) -> Location>, String> {
+    if let Some(locations) = locations {
+        Ok(Box::new(move |rnd| get_random_item(locations.as_slice(), &rnd).cloned().expect("cannot get any location")))
+    } else {
+        let bounding_box = if let Some(area_size) = area_size {
+            if area_size > 0. {
+                get_bounding_box_from_size(&problem_proto.plan, area_size)
+            } else {
+                return Err("area size must be positive".to_string());
+            }
+        } else {
+            get_bounding_box_from_plan(&problem_proto.plan)
+        };
+        Ok(Box::new(move |rnd| {
+            // TODO allow to configure distribution
+            let lat = rnd.uniform_real((bounding_box.0).0, (bounding_box.1).0);
+            let lng = rnd.uniform_real((bounding_box.0).1, (bounding_box.1).1);
+
+            Location::Coordinate { lat, lng }
+        }))
+    }
 }
 
 fn get_bounding_box_from_plan(plan: &Plan) -> ((f64, f64), (f64, f64)) {
@@ -152,20 +177,4 @@ fn get_job_tasks(job: &Job) -> impl Iterator<Item = &JobTask> {
         .chain(job.deliveries.iter().flat_map(|tasks| tasks.iter()))
         .chain(job.replacements.iter().flat_map(|tasks| tasks.iter()))
         .chain(job.services.iter().flat_map(|tasks| tasks.iter()))
-}
-
-fn get_random_item<'a, T>(items: &'a [T], rnd: &DefaultRandom) -> Option<&'a T> {
-    if items.is_empty() {
-        return None;
-    }
-
-    let idx = rnd.uniform_int(0, items.len() as i32 - 1) as usize;
-    items.get(idx)
-}
-
-fn get_random_location(bounding_box: &((f64, f64), (f64, f64)), rnd: &DefaultRandom) -> Location {
-    let lat = rnd.uniform_real((bounding_box.0).0, (bounding_box.1).0);
-    let lng = rnd.uniform_real((bounding_box.0).1, (bounding_box.1).1);
-
-    Location::Coordinate { lat, lng }
 }

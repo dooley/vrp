@@ -9,20 +9,27 @@ pub trait Recreate {
     fn run(&self, refinement_ctx: &RefinementContext, insertion_ctx: InsertionContext) -> InsertionContext;
 }
 
+mod recreate_with_blinks;
+pub use self::recreate_with_blinks::RecreateWithBlinks;
+
 mod recreate_with_cheapest;
 pub use self::recreate_with_cheapest::RecreateWithCheapest;
 
 mod recreate_with_gaps;
 pub use self::recreate_with_gaps::RecreateWithGaps;
 
-mod recreate_with_blinks;
-pub use self::recreate_with_blinks::RecreateWithBlinks;
+mod recreate_with_nearest_neighbor;
+pub use self::recreate_with_nearest_neighbor::RecreateWithNearestNeighbor;
+
+mod recreate_with_perturbation;
+pub use self::recreate_with_perturbation::RecreateWithPerturbation;
+
+mod recreate_with_skip_best;
+pub use self::recreate_with_skip_best::RecreateWithSkipBest;
 
 mod recreate_with_regret;
 pub use self::recreate_with_regret::RecreateWithRegret;
 
-mod recreate_with_nearest_neighbor;
-pub use self::recreate_with_nearest_neighbor::*;
 use crate::models::common::SingleDimLoad;
 use crate::models::Problem;
 use std::sync::Arc;
@@ -45,12 +52,14 @@ impl CompositeRecreate {
     /// strategies.
     pub fn new_from_problem(_problem: Arc<Problem>) -> Self {
         Self::new(vec![
-            (Box::new(RecreateWithRegret::new(1, 2)), 100),
-            (Box::new(RecreateWithRegret::new(3, 4)), 5),
+            (Box::new(RecreateWithSkipBest::new(1, 2)), 50),
+            (Box::new(RecreateWithRegret::new(2, 3)), 20),
+            (Box::new(RecreateWithPerturbation::default()), 10),
+            (Box::new(RecreateWithSkipBest::new(3, 4)), 5),
             (Box::new(RecreateWithGaps::default()), 5),
             // TODO use dimension size from problem
             (Box::new(RecreateWithBlinks::<SingleDimLoad>::default()), 5),
-            (Box::new(RecreateWithRegret::new(4, 8)), 2),
+            (Box::new(RecreateWithSkipBest::new(4, 8)), 2),
             (Box::new(RecreateWithNearestNeighbor::default()), 1),
         ])
     }
